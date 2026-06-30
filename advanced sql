@@ -1,0 +1,334 @@
+-- Advanced SQL Project: College Course Management System
+
+CREATE DATABASE CollegeDB;
+USE CollegeDB;
+
+-- =========================
+-- TABLES
+-- =========================
+
+CREATE TABLE Students (
+    student_id INT PRIMARY KEY,
+    name VARCHAR(100),
+    department VARCHAR(50),
+    admission_year INT
+);
+
+CREATE TABLE Courses (
+    course_id INT PRIMARY KEY,
+    course_name VARCHAR(100),
+    credits INT,
+    department VARCHAR(50)
+);
+
+CREATE TABLE Enrollments (
+    enrollment_id INT PRIMARY KEY,
+    student_id INT,
+    course_id INT,
+    marks INT,
+    semester VARCHAR(20),
+    FOREIGN KEY (student_id) REFERENCES Students(student_id),
+    FOREIGN KEY (course_id) REFERENCES Courses(course_id)
+);
+
+CREATE TABLE Fees (
+    fee_id INT PRIMARY KEY,
+    student_id INT,
+    total_fee DECIMAL(10,2),
+    paid_fee DECIMAL(10,2),
+    FOREIGN KEY (student_id) REFERENCES Students(student_id)
+);
+
+-- =========================
+-- INSERT DATA
+-- =========================
+
+INSERT INTO Students VALUES
+(1, 'Arun', 'Computer Science', 2022),
+(2, 'Meena', 'Computer Science', 2021),
+(3, 'Ravi', 'Electronics', 2022),
+(4, 'Divya', 'Mechanical', 2023),
+(5, 'Kiran', 'Computer Science', 2023);
+
+INSERT INTO Courses VALUES
+(101, 'Database Systems', 4, 'Computer Science'),
+(102, 'Machine Learning', 4, 'Computer Science'),
+(103, 'Digital Electronics', 3, 'Electronics'),
+(104, 'Thermodynamics', 3, 'Mechanical');
+
+INSERT INTO Enrollments VALUES
+(1, 1, 101, 85, 'Sem 1'),
+(2, 1, 102, 78, 'Sem 2'),
+(3, 2, 101, 92, 'Sem 1'),
+(4, 2, 102, 88, 'Sem 2'),
+(5, 3, 103, 74, 'Sem 1'),
+(6, 4, 104, 69, 'Sem 1'),
+(7, 5, 101, 81, 'Sem 1'),
+(8, 5, 102, 90, 'Sem 2');
+
+INSERT INTO Fees VALUES
+(1, 1, 80000, 60000),
+(2, 2, 80000, 80000),
+(3, 3, 75000, 50000),
+(4, 4, 70000, 30000),
+(5, 5, 80000, 75000);
+
+-- =========================
+-- 1. INNER JOIN
+-- =========================
+
+SELECT 
+    s.name,
+    c.course_name,
+    e.marks,
+    e.semester
+FROM Enrollments e
+INNER JOIN Students s ON e.student_id = s.student_id
+INNER JOIN Courses c ON e.course_id = c.course_id;
+
+-- =========================
+-- 2. LEFT JOIN
+-- =========================
+
+SELECT 
+    s.name,
+    f.total_fee,
+    f.paid_fee,
+    f.total_fee - f.paid_fee AS pending_fee
+FROM Students s
+LEFT JOIN Fees f ON s.student_id = f.student_id;
+
+-- =========================
+-- 3. GROUP BY WITH HAVING
+-- =========================
+
+SELECT 
+    s.department,
+    AVG(e.marks) AS average_marks
+FROM Students s
+JOIN Enrollments e ON s.student_id = e.student_id
+GROUP BY s.department
+HAVING AVG(e.marks) > 75;
+
+-- =========================
+-- 4. SUBQUERY
+-- =========================
+
+SELECT name
+FROM Students
+WHERE student_id IN (
+    SELECT student_id
+    FROM Enrollments
+    WHERE marks > 85
+);
+
+-- =========================
+-- 5. CORRELATED SUBQUERY
+-- =========================
+
+SELECT 
+    s.name,
+    e.marks
+FROM Students s
+JOIN Enrollments e ON s.student_id = e.student_id
+WHERE e.marks > (
+    SELECT AVG(e2.marks)
+    FROM Enrollments e2
+    WHERE e2.course_id = e.course_id
+);
+
+-- =========================
+-- 6. CTE
+-- =========================
+
+WITH StudentAverage AS (
+    SELECT 
+        student_id,
+        AVG(marks) AS avg_marks
+    FROM Enrollments
+    GROUP BY student_id
+)
+SELECT 
+    s.name,
+    sa.avg_marks
+FROM StudentAverage sa
+JOIN Students s ON sa.student_id = s.student_id
+WHERE sa.avg_marks > 80;
+
+-- =========================
+-- 7. WINDOW FUNCTION - RANK
+-- =========================
+
+SELECT 
+    s.name,
+    c.course_name,
+    e.marks,
+    RANK() OVER (
+        PARTITION BY c.course_name 
+        ORDER BY e.marks DESC
+    ) AS course_rank
+FROM Enrollments e
+JOIN Students s ON e.student_id = s.student_id
+JOIN Courses c ON e.course_id = c.course_id;
+
+-- =========================
+-- 8. WINDOW FUNCTION - RUNNING AVERAGE
+-- =========================
+
+SELECT 
+    enrollment_id,
+    student_id,
+    marks,
+    AVG(marks) OVER (
+        ORDER BY enrollment_id
+    ) AS running_average
+FROM Enrollments;
+
+-- =========================
+-- 9. CASE STATEMENT
+-- =========================
+
+SELECT 
+    s.name,
+    e.marks,
+    CASE
+        WHEN e.marks >= 90 THEN 'A+'
+        WHEN e.marks >= 80 THEN 'A'
+        WHEN e.marks >= 70 THEN 'B'
+        WHEN e.marks >= 60 THEN 'C'
+        ELSE 'Fail'
+    END AS grade
+FROM Students s
+JOIN Enrollments e ON s.student_id = e.student_id;
+
+-- =========================
+-- 10. VIEW
+-- =========================
+
+CREATE VIEW StudentPerformance AS
+SELECT 
+    s.student_id,
+    s.name,
+    s.department,
+    AVG(e.marks) AS average_marks
+FROM Students s
+JOIN Enrollments e ON s.student_id = e.student_id
+GROUP BY s.student_id, s.name, s.department;
+
+SELECT * FROM StudentPerformance;
+
+-- =========================
+-- 11. TRANSACTION
+-- =========================
+
+START TRANSACTION;
+
+UPDATE Fees
+SET paid_fee = paid_fee + 5000
+WHERE student_id = 1;
+
+UPDATE Enrollments
+SET marks = marks + 2
+WHERE student_id = 1;
+
+COMMIT;
+
+-- Use ROLLBACK instead of COMMIT if something goes wrong.
+
+-- =========================
+-- 12. TRIGGER
+-- =========================
+
+CREATE TABLE FeeAudit (
+    audit_id INT AUTO_INCREMENT PRIMARY KEY,
+    student_id INT,
+    old_paid_fee DECIMAL(10,2),
+    new_paid_fee DECIMAL(10,2),
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+DELIMITER //
+
+CREATE TRIGGER after_fee_update
+AFTER UPDATE ON Fees
+FOR EACH ROW
+BEGIN
+    INSERT INTO FeeAudit(student_id, old_paid_fee, new_paid_fee)
+    VALUES(OLD.student_id, OLD.paid_fee, NEW.paid_fee);
+END //
+
+DELIMITER ;
+
+UPDATE Fees
+SET paid_fee = paid_fee + 10000
+WHERE student_id = 3;
+
+SELECT * FROM FeeAudit;
+
+-- =========================
+-- 13. STORED PROCEDURE
+-- =========================
+
+DELIMITER //
+
+CREATE PROCEDURE GetStudentReport(IN sid INT)
+BEGIN
+    SELECT 
+        s.name,
+        s.department,
+        c.course_name,
+        e.marks,
+        CASE
+            WHEN e.marks >= 90 THEN 'A+'
+            WHEN e.marks >= 80 THEN 'A'
+            WHEN e.marks >= 70 THEN 'B'
+            WHEN e.marks >= 60 THEN 'C'
+            ELSE 'Fail'
+        END AS grade
+    FROM Students s
+    JOIN Enrollments e ON s.student_id = e.student_id
+    JOIN Courses c ON e.course_id = c.course_id
+    WHERE s.student_id = sid;
+END //
+
+DELIMITER ;
+
+CALL GetStudentReport(1);
+
+-- =========================
+-- 14. FIND TOP STUDENT PER COURSE
+-- =========================
+
+WITH RankedStudents AS (
+    SELECT 
+        s.name,
+        c.course_name,
+        e.marks,
+        RANK() OVER (
+            PARTITION BY c.course_id
+            ORDER BY e.marks DESC
+        ) AS rank_position
+    FROM Enrollments e
+    JOIN Students s ON e.student_id = s.student_id
+    JOIN Courses c ON e.course_id = c.course_id
+)
+SELECT *
+FROM RankedStudents
+WHERE rank_position = 1;
+
+-- =========================
+-- 15. PENDING FEE REPORT
+-- =========================
+
+SELECT 
+    s.name,
+    f.total_fee,
+    f.paid_fee,
+    f.total_fee - f.paid_fee AS pending_fee,
+    CASE
+        WHEN f.total_fee = f.paid_fee THEN 'Paid'
+        WHEN f.paid_fee = 0 THEN 'Not Paid'
+        ELSE 'Partially Paid'
+    END AS payment_status
+FROM Students s
+JOIN Fees f ON s.student_id = f.student_id;
