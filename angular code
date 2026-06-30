@@ -1,0 +1,36 @@
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-root',
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.css']
+})
+export class AppComponent {
+
+  studentName = '';
+
+  students = [
+    { id: 1, name: 'John', present: true },
+    { id: 2, name: 'Alice', present: false }
+  ];
+
+  addStudent() {
+    if (this.studentName.trim() === '') return;
+
+    this.students.push({
+      id: this.students.length + 1,
+      name: this.studentName,
+      present: false
+    });
+
+    this.studentName = '';
+  }
+
+  toggleAttendance(student: any) {
+    student.present = !student.present;
+  }
+
+  deleteStudent(id: number) {
+    this.students = this.students.filter(s => s.id !== id);
+  }
+}
