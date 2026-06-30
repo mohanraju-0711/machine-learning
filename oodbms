@@ -1,0 +1,47 @@
+import pickle
+
+class Student:
+    def __init__(self, student_id, name, department, cgpa):
+        self.student_id = student_id
+        self.name = name
+        self.department = department
+        self.cgpa = cgpa
+
+    def display(self):
+        print(f"ID: {self.student_id}")
+        print(f"Name: {self.name}")
+        print(f"Department: {self.department}")
+        print(f"CGPA: {self.cgpa}")
+        print("-" * 30)
+
+
+# Create objects
+students = [
+    Student(1, "Arun", "Computer Science", 8.5),
+    Student(2, "Meena", "Information Technology", 9.1),
+    Student(3, "Ravi", "Electronics", 7.8)
+]
+
+# Store objects in file
+with open("students.dat", "wb") as file:
+    pickle.dump(students, file)
+
+print("Student objects saved successfully.")
+
+# Read objects from file
+with open("students.dat", "rb") as file:
+    loaded_students = pickle.load(file)
+
+print("\nStudent Records:")
+
+for student in loaded_students:
+    student.display()
+
+# Search object
+search_id = 2
+
+print("Search Result:")
+
+for student in loaded_students:
+    if student.student_id == search_id:
+        student.display()
