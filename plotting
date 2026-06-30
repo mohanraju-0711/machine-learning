@@ -1,0 +1,26 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Sample sales data
+data = {
+    "Month": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+    "Sales": [12000, 15000, 18000, 14000, 22000, 25000]
+}
+
+df = pd.DataFrame(data)
+
+print(df)
+
+# Bar chart
+plt.bar(df["Month"], df["Sales"])
+plt.title("Monthly Sales Report")
+plt.xlabel("Month")
+plt.ylabel("Sales")
+plt.show()
+
+# Line chart
+plt.plot(df["Month"], df["Sales"], marker="o")
+plt.title("Sales Growth Trend")
+plt.xlabel("Month")
+plt.ylabel("Sales")
+plt.show()
