@@ -1,0 +1,230 @@
+import React, { useEffect, useMemo, useState } from "react";
+import "./App.css";
+
+const initialJobs = [
+  {
+    id: 1,
+    company: "Google",
+    role: "Frontend Developer",
+    location: "Bangalore",
+    status: "Applied",
+    salary: 1200000,
+  },
+  {
+    id: 2,
+    company: "Amazon",
+    role: "React Developer",
+    location: "Hyderabad",
+    status: "Interview",
+    salary: 1000000,
+  },
+  {
+    id: 3,
+    company: "Zoho",
+    role: "Full Stack Developer",
+    location: "Chennai",
+    status: "Rejected",
+    salary: 800000,
+  },
+];
+
+function App() {
+  const [jobs, setJobs] = useState(() => {
+    const saved = localStorage.getItem("jobs");
+    return saved ? JSON.parse(saved) : initialJobs;
+  });
+
+  const [form, setForm] = useState({
+    company: "",
+    role: "",
+    location: "",
+    status: "Applied",
+    salary: "",
+  });
+
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
+
+  useEffect(() => {
+    localStorage.setItem("jobs", JSON.stringify(jobs));
+  }, [jobs]);
+
+  const addJob = (e) => {
+    e.preventDefault();
+
+    if (!form.company || !form.role || !form.location || !form.salary) {
+      alert("Please fill all fields");
+      return;
+    }
+
+    const newJob = {
+      id: Date.now(),
+      ...form,
+      salary: Number(form.salary),
+    };
+
+    setJobs([newJob, ...jobs]);
+
+    setForm({
+      company: "",
+      role: "",
+      location: "",
+      status: "Applied",
+      salary: "",
+    });
+  };
+
+  const deleteJob = (id) => {
+    setJobs(jobs.filter((job) => job.id !== id));
+  };
+
+  const updateStatus = (id, newStatus) => {
+    setJobs(
+      jobs.map((job) =>
+        job.id === id ? { ...job, status: newStatus } : job
+      )
+    );
+  };
+
+  const filteredJobs = useMemo(() => {
+    return jobs.filter((job) => {
+      const matchesSearch =
+        job.company.toLowerCase().includes(search.toLowerCase()) ||
+        job.role.toLowerCase().includes(search.toLowerCase()) ||
+        job.location.toLowerCase().includes(search.toLowerCase());
+
+      const matchesStatus =
+        statusFilter === "All" || job.status === statusFilter;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [jobs, search, statusFilter]);
+
+  const stats = useMemo(() => {
+    return {
+      total: jobs.length,
+      applied: jobs.filter((j) => j.status === "Applied").length,
+      interview: jobs.filter((j) => j.status === "Interview").length,
+      selected: jobs.filter((j) => j.status === "Selected").length,
+      rejected: jobs.filter((j) => j.status === "Rejected").length,
+    };
+  }, [jobs]);
+
+  return (
+    <div className="app">
+      <h1>Job Application Tracker</h1>
+
+      <div className="stats">
+        <div>Total: {stats.total}</div>
+        <div>Applied: {stats.applied}</div>
+        <div>Interview: {stats.interview}</div>
+        <div>Selected: {stats.selected}</div>
+        <div>Rejected: {stats.rejected}</div>
+      </div>
+
+      <form onSubmit={addJob} className="form">
+        <input
+          placeholder="Company"
+          value={form.company}
+          onChange={(e) =>
+            setForm({ ...form, company: e.target.value })
+          }
+        />
+
+        <input
+          placeholder="Role"
+          value={form.role}
+          onChange={(e) =>
+            setForm({ ...form, role: e.target.value })
+          }
+        />
+
+        <input
+          placeholder="Location"
+          value={form.location}
+          onChange={(e) =>
+            setForm({ ...form, location: e.target.value })
+          }
+        />
+
+        <input
+          type="number"
+          placeholder="Salary"
+          value={form.salary}
+          onChange={(e) =>
+            setForm({ ...form, salary: e.target.value })
+          }
+        />
+
+        <select
+          value={form.status}
+          onChange={(e) =>
+            setForm({ ...form, status: e.target.value })
+          }
+        >
+          <option>Applied</option>
+          <option>Interview</option>
+          <option>Selected</option>
+          <option>Rejected</option>
+        </select>
+
+        <button>Add Job</button>
+      </form>
+
+      <div className="filters">
+        <input
+          placeholder="Search company, role, or location..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
+          <option>All</option>
+          <option>Applied</option>
+          <option>Interview</option>
+          <option>Selected</option>
+          <option>Rejected</option>
+        </select>
+      </div>
+
+      <div className="job-list">
+        {filteredJobs.length === 0 ? (
+          <p>No jobs found</p>
+        ) : (
+          filteredJobs.map((job) => (
+            <div className="job-card" key={job.id}>
+              <h2>{job.role}</h2>
+              <p><strong>Company:</strong> {job.company}</p>
+              <p><strong>Location:</strong> {job.location}</p>
+              <p><strong>Salary:</strong> ₹{job.salary.toLocaleString()}</p>
+
+              <select
+                value={job.status}
+                onChange={(e) =>
+                  updateStatus(job.id, e.target.value)
+                }
+              >
+                <option>Applied</option>
+                <option>Interview</option>
+                <option>Selected</option>
+                <option>Rejected</option>
+              </select>
+
+              <button
+                className="delete"
+                onClick={() => deleteJob(job.id)}
+              >
+                Delete
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default App;
